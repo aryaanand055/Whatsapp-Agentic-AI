@@ -1,0 +1,99 @@
+# Environment and Credentials
+.env
+.env*.local
+*.pem
+*.key
+
+# AI Assistant & Local Skills
+.agents/
+
+# Application Storage & Local Data
+storage/whatsapp_profile/
+storage/chroma_db/
+storage/*.db
+storage/*.db-journal
+storage/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+
+# Python Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Type Checking & Linting
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# Packaging and Builds
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Playwright & Debugging Artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+*.png
+*.jpg
+*.jpeg
+*.log
+*.html_dump
+body.html
+body_temp.html
+search_fail.html
+search_fail.png
+container.html
+unread_btn.html
+screenshot.png
+
+# IDE & Editor Specific
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini

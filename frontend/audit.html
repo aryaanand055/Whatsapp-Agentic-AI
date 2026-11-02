@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Logs - WhatsApp Multi-Agent System</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .audit-table-container {
+            padding: 2rem;
+            overflow: auto;
+            flex: 1;
+        }
+        table.audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+        }
+        table.audit-table th {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 2px solid var(--panel-border);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+        }
+        table.audit-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--panel-border);
+            vertical-align: top;
+            color: var(--text-primary);
+        }
+        table.audit-table tr:hover {
+            background-color: #faf9f6;
+        }
+        .json-block {
+            background: #faf9f6;
+            padding: 0.75rem;
+            border-radius: 2px;
+            border: 1px solid var(--panel-border);
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 2px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-success { background: #e6f4ea; color: var(--success); }
+        .badge-error { background: #fce8e8; color: var(--danger); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Agent Coordinator</h2>
+                <div class="status-indicator">
+                    <span class="dot online"></span>
+                    <span>System Online</span>
+                </div>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-nav" style="margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 0.75rem;">Navigation</h3>
+                    <ul class="nav-list" style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <li><a href="/" style="display: block; padding: 0.75rem 1rem; color: var(--text-secondary); text-decoration: none; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">🏠 Chat Dashboard</a></li>
+                        <li><a href="/audit" style="display: block; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; border-radius: 4px; background: #faf9f6; border-left: 2px solid var(--text-primary); font-size: 0.85rem; font-weight: 500;">🛡️ Audit Logs</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content: Audit Logs -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-info">
+                    <h1>Audit Logs</h1>
+                    <p>Transparent history of all tool executions and background agent activity.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="btn-refresh" onclick="fetchLogs()">↻ Refresh</button>
+                </div>
+            </header>
+
+            <div class="audit-table-container">
+                <table class="audit-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%">Timestamp</th>
+                            <th style="width: 15%">Tool Name</th>
+                            <th style="width: 5%">Status</th>
+                            <th style="width: 30%">Arguments</th>
+                            <th style="width: 35%">Result / Error</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-secondary);">Loading logs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/audit.js"></script>
+</body>
+</html>
