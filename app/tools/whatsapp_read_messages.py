@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Any, List
+from typing import Optional, Any
 from pydantic import BaseModel, Field
 
 from app.whatsapp.client import WhatsAppClient
@@ -7,13 +7,13 @@ from app.whatsapp.client import WhatsAppClient
 logger = logging.getLogger(__name__)
 
 class ReadMessagesInput(BaseModel):
-    contact: str = Field(..., description="The contact to read messages from")
-    limit: int = Field(10, description="Maximum number of recent messages to retrieve")
+    contact: str = Field(..., description="The contact name whose messages to read")
+    limit: int = Field(default=10, description="Maximum number of messages to read")
 
 class ReadMessagesOutput(BaseModel):
     success: bool
     contact: str
-    messages: List[dict]
+    messages: list[dict] = Field(default_factory=list)
     error: Optional[str] = None
 
 TOOL_DEFINITION = {
@@ -31,6 +31,13 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> ReadMes
     """
     try:
         input_data = ReadMessagesInput(**args)
+        
+        # ── WORKSHOP EXERCISE: TOOL #3 (Read Messages) ──────────────────────────
+        # Fetch recent messages from the client. The client returns ChatMessages
+        # containing message objects with sender, timestamp, text, and is_from_me.
+        # Try it yourself:
+        # chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
+        # ────────────────────────────────────────────────────────────────────────
         chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
         
         messages = [
@@ -47,10 +54,8 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> ReadMes
             contact=input_data.contact,
             messages=messages
         )
-        
-            
         return output
     except Exception as e:
         logger.error(f"Error in whatsapp_read_messages: {e}")
-        error_output = ReadMessagesOutput(success=False, contact=args.get("contact", ""), messages=[], error=str(e))
+        error_output = ReadMessagesOutput(success=False, contact=args.get("contact", ""), error=str(e))
         return error_output

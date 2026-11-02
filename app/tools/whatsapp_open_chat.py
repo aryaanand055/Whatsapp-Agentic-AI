@@ -29,6 +29,12 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> OpenCha
     """
     try:
         input_data = OpenChatInput(**args)
+        
+        # ── WORKSHOP EXERCISE: TOOL #2 (Open Chat) ──────────────────────────────
+        # Call the underlying WhatsApp client automation to open the chat window.
+        # Try it yourself:
+        # success = await client.open_chat(input_data.contact)
+        # ────────────────────────────────────────────────────────────────────────
         success = await client.open_chat(input_data.contact)
         
         output = OpenChatOutput(
@@ -36,8 +42,6 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> OpenCha
             contact=input_data.contact,
             error=None if success else "Failed to open chat."
         )
-        
-            
         return output
     except Exception as e:
         logger.error(f"Error in whatsapp_open_chat: {e}")
