@@ -33,22 +33,20 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> ReadMes
         input_data = ReadMessagesInput(**args)
         
         # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ HANDS-ON EXERCISE #3: PERCEPTION & READING MESSAGES
+        # 🛠️ WORKSHOP EXERCISE #3: READ MESSAGES (PERCEPTION)
         # ════════════════════════════════════════════════════════════════════════
-        # GOAL: Read recent messages so the agent can perceive context.
+        # GOAL:
+        #   Scrape the recent messages from the active chat so Gemini has context.
         #
         # HINT:
-        #   - Call: `chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)`
-        #   - Each item in `chat_messages.messages` has:
-        #       - msg.sender (str)
-        #       - msg.text (str)
-        #       - msg.timestamp (str)
-        #       - msg.is_from_me (bool) -> Tells the LLM who sent it!
+        #   1. Call: chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
+        #   2. Build list of dicts with: sender, timestamp, text, is_from_me
+        #
+        # (See solutions/SOLUTIONS.md if you get stuck!)
         # ════════════════════════════════════════════════════════════════════════
         
-        # TODO: Replace the line below with your implementation:
+        # YOUR CODE HERE:
         chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
-        
         messages = [
             {
                 "sender": msg.sender,
@@ -58,13 +56,11 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> ReadMes
             } for msg in chat_messages.messages
         ]
         
-        output = ReadMessagesOutput(
+        return ReadMessagesOutput(
             success=True,
             contact=input_data.contact,
             messages=messages
         )
-        return output
     except Exception as e:
         logger.error(f"Error in whatsapp_read_messages: {e}")
-        error_output = ReadMessagesOutput(success=False, contact=args.get("contact", ""), error=str(e))
-        return error_output
+        return ReadMessagesOutput(success=False, contact=args.get("contact", ""), error=str(e))

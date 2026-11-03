@@ -36,56 +36,53 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> SendMes
         input_data = SendMessageInput(**args)
         
         # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ HANDS-ON EXERCISE #4: THE SAFETY GUARDRAIL (HUMAN-IN-THE-LOOP)
+        # 🛠️ WORKSHOP EXERCISE #4: SEND MESSAGE (HUMAN-IN-THE-LOOP SAFETY GATE)
         # ════════════════════════════════════════════════════════════════════════
-        # CRITICAL AGENTIC PRINCIPLE:
-        # Never allow an AI to perform an outward irreversible action (like sending texts) 
-        # without explicit human consent!
+        # GOAL:
+        #   Never send an irreversible message without human approval!
         #
-        # STEP 1: If `input_data.confirmed` is False:
-        #   - Stage the message in the SQLite database by calling:
-        #       confirmation_id = await db.create_pending_confirmation(...)
-        #   - Return `requires_confirmation=True` and `confirmation_id`
+        # LOGIC:
+        #   1. If `input_data.confirmed` is False:
+        #      Stage the message in SQLite:
+        #        confirmation_id = await db.create_pending_confirmation(input_data.contact, json.dumps(input_data.messages))
+        #      Return SendMessageOutput with requires_confirmation=True and confirmation_id.
         #
-        # STEP 2: If `input_data.confirmed` is True:
-        #   - Actually send the message by calling:
-        #       success = await client.send_message(input_data.contact, input_data.messages)
+        #   2. If `input_data.confirmed` is True:
+        #      Dispatch the message:
+        #        success = await client.send_message(input_data.contact, input_data.messages)
+        #      Return SendMessageOutput with success=success.
+        #
+        # (See solutions/SOLUTIONS.md if you get stuck!)
         # ════════════════════════════════════════════════════════════════════════
         
-        # TODO: Implement the safety check below:
+        # YOUR CODE HERE:
         if not input_data.confirmed:
             if not db:
                 raise ValueError("Database is required for pending confirmations")
-                
             import json
             confirmation_id = await db.create_pending_confirmation(input_data.contact, json.dumps(input_data.messages))
-            
-            output = SendMessageOutput(
+            return SendMessageOutput(
                 success=True,
                 contact=input_data.contact,
                 messages=input_data.messages,
                 requires_confirmation=True,
                 confirmation_id=confirmation_id
             )
-            return output
         
-        # If explicitly confirmed:
+        # When confirmed:
         success = await client.send_message(input_data.contact, input_data.messages)
-        
-        output = SendMessageOutput(
+        return SendMessageOutput(
             success=success,
             contact=input_data.contact,
             messages=input_data.messages,
             requires_confirmation=False,
             error=None if success else "Failed to send message via WhatsApp."
         )
-        return output
     except Exception as e:
         logger.error(f"Error in whatsapp_send_message: {e}")
-        error_output = SendMessageOutput(
+        return SendMessageOutput(
             success=False,
             contact=args.get("contact", ""),
             messages=args.get("messages", []),
             error=str(e)
         )
-        return error_output

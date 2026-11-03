@@ -1,8 +1,10 @@
+"""Tool to draft a message based on instruction and context."""
+
 import logging
 from typing import Optional, Any
 from pydantic import BaseModel, Field
 from google import genai
-import json
+from google.genai import types
 
 from app.whatsapp.client import WhatsAppClient
 
@@ -10,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class DraftMessageInput(BaseModel):
-    contact: str = Field(..., description="The contact to draft a message for")
-    instruction: str = Field(..., description="Instructions on what the drafted message should say")
+    contact: str = Field(..., description="The contact name to draft a message for")
+    instruction: str = Field(..., description="Instructions on what to say")
 
 
 class DraftMessageOutput(BaseModel):
@@ -42,81 +44,77 @@ async def execute(
     try:
         input_data = DraftMessageInput(**args)
 
-        # Fetch recent messages for context
+        # ════════════════════════════════════════════════════════════════════════
+        # 🛠️ WORKSHOP EXERCISE #6: CONTEXTUAL DRAFTING
+        # ════════════════════════════════════════════════════════════════════════
+        # GOAL:
+        #   1. Fetch the last 5 messages from the chat as conversation context.
+        #   2. Ask Gemini to draft a natural, human-sounding reply.
+        #
+        # (See solutions/SOLUTIONS.md if you get stuck!)
+        # ════════════════════════════════════════════════════════════════════════
+
+        # 1. Fetch recent messages for context
         try:
             recent_msgs = await client.get_recent_messages(input_data.contact, limit=5)
-            context = "\n".join(
-                [f"{msg.sender}: {msg.text}" for msg in recent_msgs.messages]
-            )
+            context = "\n".join([f"{msg.sender}: {msg.text}" for msg in recent_msgs.messages])
         except Exception as e:
             logger.warning(f"Could not fetch recent messages for context: {e}")
             context = "No recent context available."
 
+        # 2. Check for optional stored style/memory in DB
         user_style = None
         memories = []
         if db:
             try:
-                # First try to get contact-specific style
-                user_style = await db.get_contact_style(input_data.contact)
-                if not user_style:
-                    # Fallback to global style
-                    user_style = await db.get_user_style()
-                
-                # Fetch memories (global + contact specific)
+                user_style = await db.get_contact_style(input_data.contact) or await db.get_user_style()
                 memories_records = await db.get_memories(input_data.contact)
                 memories = [m['memory_text'] for m in memories_records]
             except Exception as e:
-                logger.warning(f"Could not load user writing style or memories: {e}")
+                logger.warning(f"Could not load writing style/memories: {e}")
 
-        style_prompt = ""
-        if user_style:
-            style_prompt = f"\nUSER'S PERSONAL WRITING STYLE PROFILE:\n{user_style}\nStrictly emulate the user's personal writing style profile above.\n\n"
-            
-        memory_prompt = ""
-        if memories:
-            memory_list = "\n".join([f"- {m}" for m in memories])
-            memory_prompt = f"\nLONG-TERM MEMORY (Facts and preferences to remember):\n{memory_list}\nConsider these memories when crafting the message if they are relevant.\n\n"
+        style_prompt = f"\nUSER'S STYLE PROFILE:\n{user_style}\n" if user_style else ""
+        memory_prompt = f"\nRELEVANT MEMORIES:\n" + "\n".join([f"- {m}" for m in memories]) + "\n" if memories else ""
 
         prompt = (
-            f"Draft natural WhatsApp message(s) based on the following instruction: {input_data.instruction}\n\n"
+            f"You are drafting WhatsApp messages on behalf of the user to {input_data.contact}.\n"
+            f"Recent Conversation Context:\n{context}\n\n"
             f"{style_prompt}"
             f"{memory_prompt}"
-            f"Recent chat context:\n{context}\n\n"
-            "RULES:\n"
-            "1. Match the exact language, casual tone, and slang (e.g., Tanglish/casual English) from the chat context and the style profile.\n"
-            "2. Send as many short messages as naturally required (could be 1, 2, 3, or 4). Do not force a fixed message count.\n"
-            "3. CRITICAL: Every message MUST contain NEW information, a unique point, or a natural continuation. NEVER repeat or rephrase the same question/idea in multiple messages.\n"
-            "4. Return ONLY a JSON array of strings, e.g. [\"Aah afternoon eh?\", \"Veetla enna vishesham?\"] or [\"Chumma veetuku poranu soltu ipdi oodura 🤣\"]."
+            f"User's Instruction:\n{input_data.instruction}\n\n"
+            f"Rules:\n"
+            f"1. Generate 1 to 3 short sequential WhatsApp messages that sound completely natural.\n"
+            f"2. Separate multiple messages with a double newline (\\n\\n).\n"
+            f"3. Do not include quotes or conversational preamble — output ONLY the raw message texts."
         )
 
-        if not genai_client:
-            raise ValueError("genai_client is required for drafting messages.")
+        if genai_client:
+            response = await genai_client.aio.models.generate_content(
+                model=model,
+                contents=prompt
+            )
+            raw_text = response.text or ""
+            # Split by double newline to get individual message bubbles
+            drafts = [msg.strip() for msg in raw_text.split("\n\n") if msg.strip()]
+        else:
+            return DraftMessageOutput(
+                success=False,
+                contact=input_data.contact,
+                drafts=[],
+                error="genai_client is required for drafting messages"
+            )
 
-        response = await genai_client.aio.models.generate_content(
-            model=model,
-            contents=prompt,
-        )
-
-        drafts = []
-        try:
-            # Strip markdown codeblocks
-            text = response.text.strip().removeprefix("```json").removesuffix("```").strip()
-            drafts = json.loads(text)
-            if not isinstance(drafts, list):
-                drafts = [str(drafts)]
-        except Exception:
-            drafts = [response.text.strip()]
-
-        output = DraftMessageOutput(
+        return DraftMessageOutput(
             success=True,
             contact=input_data.contact,
             drafts=drafts,
         )
 
-        return output
     except Exception as e:
         logger.error(f"Error in whatsapp_draft_message: {e}")
-        error_output = DraftMessageOutput(
-            success=False, contact=args.get("contact", ""), error=str(e)
+        return DraftMessageOutput(
+            success=False,
+            contact=args.get("contact", ""),
+            drafts=[],
+            error=str(e),
         )
-        return error_output

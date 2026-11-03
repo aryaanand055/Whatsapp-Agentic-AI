@@ -29,36 +29,37 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> SearchC
     Execute the whatsapp_search_contact tool.
     """
     try:
-        # Validate arguments using Pydantic
         input_data = SearchContactInput(**args)
         
         # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ HANDS-ON EXERCISE #1: SEARCH FOR A CONTACT
+        # 🛠️ WORKSHOP EXERCISE #1: SEARCH CONTACT
         # ════════════════════════════════════════════════════════════════════════
-        # GOAL: Use the `client` object to search WhatsApp for the given name.
-        # 
-        # HINT: 
-        #   - The contact query is in `input_data.name`
-        #   - Call: `result = await client.search_contact(input_data.name)`
-        #   - `result.matches` is a list of contacts with `.name` and `.phone`
+        # GOAL:
+        #   Use `client` to search for the contact on WhatsApp Web.
+        #
+        # HINT:
+        #   1. Call: result = await client.search_contact(input_data.name)
+        #   2. Populate matches from result.matches
+        #
+        # (See solutions/SOLUTIONS.md if you get stuck!)
         # ════════════════════════════════════════════════════════════════════════
         
-        # TODO: Replace the line below with your implementation:
+        # YOUR CODE HERE:
         result = await client.search_contact(input_data.name)
+        matches = [{"name": match.name, "phone": match.phone} for match in result.matches]
+        query = result.query
         
-        output = SearchContactOutput(
+        return SearchContactOutput(
             success=True,
-            matches=[{"name": match.name, "phone": match.phone} for match in result.matches],
-            query=result.query
+            matches=matches,
+            query=query
         )
-        return output
     except Exception as e:
         query_name = args.get("name", "Unknown")
         logger.error("Error in whatsapp_search_contact: Could not complete search for '%s': %s", query_name, e)
-        error_output = SearchContactOutput(
+        return SearchContactOutput(
             success=False,
             matches=[],
             query=args.get("name", ""),
             error=str(e)
         )
-        return error_output
