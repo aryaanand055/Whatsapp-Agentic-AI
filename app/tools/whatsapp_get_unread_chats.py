@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Any
+from typing import Any, Union
 import logging
 
 from app.whatsapp.client import WhatsAppClient
@@ -7,19 +7,23 @@ from app.database.db import Database
 
 logger = logging.getLogger(__name__)
 
+class UnreadChatInfo(BaseModel):
+    contact: str
+    preview: str = ""
+
 class GetUnreadChatsInput(BaseModel):
     pass  # No parameters needed
 
 class GetUnreadChatsOutput(BaseModel):
     success: bool
-    unread_chats: list[str] = Field(default_factory=list)
+    unread_chats: list[Union[UnreadChatInfo, str]] = Field(default_factory=list)
     error: str | None = None
 
 TOOL_DEFINITION = {
     "type": "function",
     "function": {
         "name": "whatsapp_get_unread_chats",
-        "description": "Gets a list of all visible chats that currently have unread messages.",
+        "description": "Gets a list of all visible chats that currently have unread messages with their preview.",
         "parameters": {
             "type": "object",
             "properties": {},
@@ -46,7 +50,7 @@ async def execute(
         #   Call `await client.get_unread_chats()` to scan the sidebar!
         # ════════════════════════════════════════════════════════════════════════
         
-        # TODO: Call client.get_unread_chats() to get the list:
+        # Call client.get_unread_chats() to get the list:
         chats = await client.get_unread_chats()
 
         return GetUnreadChatsOutput(
