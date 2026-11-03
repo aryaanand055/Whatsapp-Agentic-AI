@@ -26,41 +26,43 @@ TOOL_DEFINITION = {
 }
 
 async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> ReadMessagesOutput:
-    """
-    Execute the whatsapp_read_messages tool.
-    """
+    """Execute the whatsapp_read_messages tool."""
     try:
         input_data = ReadMessagesInput(**args)
         
-        # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ WORKSHOP EXERCISE #3: READ MESSAGES (PERCEPTION)
-        # ════════════════════════════════════════════════════════════════════════
-        # GOAL:
-        #   Scrape the recent messages from the active chat so Gemini has context.
-        #
-        # HINT:
-        #   1. Call: chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
-        #   2. Build list of dicts with: sender, timestamp, text, is_from_me
-        #
-        # (See solutions/SOLUTIONS.md if you get stuck!)
-        # ════════════════════════════════════════════════════════════════════════
-        
-        # YOUR CODE HERE:
+        # 1. Fetch recent messages using Playwright
         chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
-        messages = [
-            {
-                "sender": msg.sender,
-                "timestamp": msg.timestamp,
-                "text": msg.text,
-                "is_from_me": msg.is_from_me
-            } for msg in chat_messages.messages
-        ]
+
+        # ════════════════════════════════════════════════════════════════════════
+        # 🛠️ EXERCISE 3: PERCEPTION — "WHO SAID WHAT?"
+        # ════════════════════════════════════════════════════════════════════════
+        # CONCEPT:
+        #   Raw HTML only gives us message text bubbles. But to give Gemini true
+        #   perception, we MUST tell it WHO sent each message!
+        #
+        # YOUR TASK:
+        #   Loop through `chat_messages.messages`.
+        #   If `msg.is_from_me` is True, set sender to "Me".
+        #   Otherwise, set sender to the friend's name (`input_data.contact`).
+        # ════════════════════════════════════════════════════════════════════════
         
+        # TODO: Format each message so Gemini knows the sender:
+        formatted_messages = []
+        for msg in chat_messages.messages:
+            sender = "Me" if msg.is_from_me else input_data.contact
+            formatted_messages.append({
+                "sender": sender,
+                "text": msg.text,
+                "timestamp": msg.timestamp,
+                "is_from_me": msg.is_from_me
+            })
+
         return ReadMessagesOutput(
             success=True,
             contact=input_data.contact,
-            messages=messages
+            messages=formatted_messages
         )
+
     except Exception as e:
         logger.error(f"Error in whatsapp_read_messages: {e}")
         return ReadMessagesOutput(success=False, contact=args.get("contact", ""), error=str(e))

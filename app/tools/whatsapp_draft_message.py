@@ -4,7 +4,6 @@ import logging
 from typing import Optional, Any
 from pydantic import BaseModel, Field
 from google import genai
-from google.genai import types
 
 from app.whatsapp.client import WhatsAppClient
 
@@ -44,58 +43,47 @@ async def execute(
     try:
         input_data = DraftMessageInput(**args)
 
-        # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ WORKSHOP EXERCISE #6: CONTEXTUAL DRAFTING
-        # ════════════════════════════════════════════════════════════════════════
-        # GOAL:
-        #   1. Fetch the last 5 messages from the chat as conversation context.
-        #   2. Ask Gemini to draft a natural, human-sounding reply.
-        #
-        # (See solutions/SOLUTIONS.md if you get stuck!)
-        # ════════════════════════════════════════════════════════════════════════
-
-        # 1. Fetch recent messages for context
+        # 1. Fetch recent messages so Gemini has conversation context
         try:
             recent_msgs = await client.get_recent_messages(input_data.contact, limit=5)
             context = "\n".join([f"{msg.sender}: {msg.text}" for msg in recent_msgs.messages])
-        except Exception as e:
-            logger.warning(f"Could not fetch recent messages for context: {e}")
+        except Exception:
             context = "No recent context available."
 
-        # 2. Check for optional stored style/memory in DB
-        user_style = None
-        memories = []
-        if db:
-            try:
-                user_style = await db.get_contact_style(input_data.contact) or await db.get_user_style()
-                memories_records = await db.get_memories(input_data.contact)
-                memories = [m['memory_text'] for m in memories_records]
-            except Exception as e:
-                logger.warning(f"Could not load writing style/memories: {e}")
-
-        style_prompt = f"\nUSER'S STYLE PROFILE:\n{user_style}\n" if user_style else ""
-        memory_prompt = f"\nRELEVANT MEMORIES:\n" + "\n".join([f"- {m}" for m in memories]) + "\n" if memories else ""
-
+        # ════════════════════════════════════════════════════════════════════════
+        # 🛠️ EXERCISE 5: CONTEXTUAL PROMPT ENGINEERING
+        # ════════════════════════════════════════════════════════════════════════
+        # CONCEPT:
+        #   An LLM needs clear ingredients to draft a realistic response.
+        #   You need to provide:
+        #     1. Recipient Name:   `input_data.contact`
+        #     2. Chat Context:     `context` (what was said previously)
+        #     3. User Instruction: `input_data.instruction` (what you want to say)
+        #     4. Output Rule:      Ask Gemini to separate short message bubbles with '\n\n'
+        #
+        # YOUR TASK:
+        #   Construct the `prompt` string below combining these elements.
+        #   (Check solutions/SOLUTIONS.md for the reference prompt)
+        # ════════════════════════════════════════════════════════════════════════
+        
+        # TODO: Construct your prompt string here:
         prompt = (
-            f"You are drafting WhatsApp messages on behalf of the user to {input_data.contact}.\n"
-            f"Recent Conversation Context:\n{context}\n\n"
-            f"{style_prompt}"
-            f"{memory_prompt}"
-            f"User's Instruction:\n{input_data.instruction}\n\n"
-            f"Rules:\n"
-            f"1. Generate 1 to 3 short sequential WhatsApp messages that sound completely natural.\n"
-            f"2. Separate multiple messages with a double newline (\\n\\n).\n"
-            f"3. Do not include quotes or conversational preamble — output ONLY the raw message texts."
+            f"You are drafting WhatsApp messages to {input_data.contact}.\n"
+            f"Recent Conversation:\n{context}\n\n"
+            f"User Instruction: {input_data.instruction}\n"
+            f"Generate 1 to 3 short realistic WhatsApp messages separated by double newlines."
         )
 
+        # ────────────────────────────────────────────────────────────────────────
+        # 🤖 LLM Generation & Parsing (Pre-built for you):
+        # Calls Gemini with your prompt, splits output into message bubbles,
+        # and returns the DraftMessageOutput.
+        # ────────────────────────────────────────────────────────────────────────
         if genai_client:
-            response = await genai_client.aio.models.generate_content(
-                model=model,
-                contents=prompt
-            )
-            raw_text = response.text or ""
-            # Split by double newline to get individual message bubbles
-            drafts = [msg.strip() for msg in raw_text.split("\n\n") if msg.strip()]
+            res = await genai_client.aio.models.generate_content(model=model, contents=prompt)
+            raw_text = res.text or ""
+            drafts = [m.strip() for m in raw_text.split("\n\n") if m.strip()]
+            return DraftMessageOutput(success=True, contact=input_data.contact, drafts=drafts)
         else:
             return DraftMessageOutput(
                 success=False,
@@ -104,17 +92,6 @@ async def execute(
                 error="genai_client is required for drafting messages"
             )
 
-        return DraftMessageOutput(
-            success=True,
-            contact=input_data.contact,
-            drafts=drafts,
-        )
-
     except Exception as e:
         logger.error(f"Error in whatsapp_draft_message: {e}")
-        return DraftMessageOutput(
-            success=False,
-            contact=args.get("contact", ""),
-            drafts=[],
-            error=str(e),
-        )
+        return DraftMessageOutput(success=False, contact=args.get("contact", ""), drafts=[], error=str(e))

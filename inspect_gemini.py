@@ -16,7 +16,7 @@ load_dotenv()
 
 async def main():
     api_key = os.getenv("LLM_API_KEY")
-    if not api_key or api_key == "your-gemini-api-key-here":
+    if not api_key:
         print("❌ Error: Please set LLM_API_KEY in your .env file first!")
         return
 

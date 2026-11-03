@@ -24,32 +24,29 @@ TOOL_DEFINITION = {
 }
 
 async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> OpenChatOutput:
-    """
-    Execute the whatsapp_open_chat tool.
-    """
+    """Execute the whatsapp_open_chat tool."""
     try:
         input_data = OpenChatInput(**args)
         
         # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ WORKSHOP EXERCISE #2: OPEN CHAT
+        # 🛠️ EXERCISE 2: OPEN A CHAT WINDOW
         # ════════════════════════════════════════════════════════════════════════
-        # GOAL:
-        #   Make the Playwright browser click into the requested contact's chat.
+        # TASK:
+        #   Make the browser open the chat for `input_data.contact`.
         #
         # HINT:
-        #   1. Call: success = await client.open_chat(input_data.contact)
-        #
-        # (See solutions/SOLUTIONS.md if you get stuck!)
+        #   Call: await client.open_chat(input_data.contact)
         # ════════════════════════════════════════════════════════════════════════
         
-        # YOUR CODE HERE:
-        success = await client.open_chat(input_data.contact)
-        
+        # TODO: Replace False with the client call above:
+        success = False  # <-- Change this to: await client.open_chat(input_data.contact)
+
         return OpenChatOutput(
             success=success,
             contact=input_data.contact,
-            error=None if success else "Failed to open chat."
+            error=None if success else "Chat not opened yet (Complete Exercise 2)."
         )
+
     except Exception as e:
         logger.error(f"Error in whatsapp_open_chat: {e}")
         return OpenChatOutput(success=False, contact=args.get("contact", ""), error=str(e))

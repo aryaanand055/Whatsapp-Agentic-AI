@@ -18,13 +18,7 @@ from app.tools import (
     whatsapp_read_messages,
     whatsapp_draft_message,
     whatsapp_send_message,
-    whatsapp_manage_tasks,
     whatsapp_get_unread_chats,
-    whatsapp_analyze_user_style,
-    whatsapp_manage_memory,
-    whatsapp_search_memory,
-    whatsapp_open_chat_by_number,
-    whatsapp_manage_autopilot,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,12 +30,6 @@ def _openai_to_interactions_tool(tool_definitions: List[dict]) -> List[dict]:
     for tool_def in tool_definitions:
         if "function" in tool_def:
             func = copy.deepcopy(tool_def["function"])
-            # Inject task_id into the schema dynamically
-            if "parameters" in func and "properties" in func["parameters"]:
-                func["parameters"]["properties"]["task_id"] = {
-                    "type": "integer",
-                    "description": "Optional: If this action is being performed as part of a tracked task from the Task Manager, provide the task ID here."
-                }
             declarations.append({
                 "type": "function",
                 "name": func["name"],
@@ -76,13 +64,7 @@ class ToolRouter:
             "whatsapp_read_messages": whatsapp_read_messages.execute,
             "whatsapp_draft_message": whatsapp_draft_message.execute,
             "whatsapp_send_message": whatsapp_send_message.execute,
-            "whatsapp_manage_tasks": whatsapp_manage_tasks.execute,
             "whatsapp_get_unread_chats": whatsapp_get_unread_chats.execute,
-            "whatsapp_analyze_user_style": whatsapp_analyze_user_style.execute,
-            "whatsapp_manage_memory": whatsapp_manage_memory.execute,
-            "whatsapp_search_memory": whatsapp_search_memory.execute,
-            "whatsapp_open_chat_by_number": whatsapp_open_chat_by_number.execute,
-            "whatsapp_manage_autopilot": whatsapp_manage_autopilot.execute,
         }
         # Pre-compute Gemini tool objects once
         self._gemini_tools = _openai_to_interactions_tool(TOOL_DEFINITIONS)
@@ -97,38 +79,37 @@ class ToolRouter:
 
     async def execute_tool(self, tool_name: str, arguments: dict) -> dict:
         """Execute a tool by name with validated arguments."""
-        # Extract task_id if present and remove it from arguments to avoid breaking strict Pydantic validation
-        task_id = arguments.pop("task_id", None)
-        
         if tool_name not in self.tools:
-            error_msg = f"Unknown tool: {tool_name}"
-            logger.error(error_msg)
-            if self.db:
-                await self.db.log_error(tool_name, "UnknownTool", error_msg)
-                await self.db.log_tool_execution(tool_name, arguments, None, error_msg, task_id)
-            return {"error": error_msg}
+            logger.error("Unknown tool requested: %s", tool_name)
+            return {"success": False, "error": f"Unknown tool: {tool_name}"}
 
-        tool_func = self.tools[tool_name]
+        func = self.tools[tool_name]
+        logger.info("Calling tool %s with args %s", tool_name, arguments)
+
         try:
-            if tool_name in ["whatsapp_draft_message", "whatsapp_analyze_user_style"]:
-                result = await tool_func(
-                    self.whatsapp_client, arguments, self.db,
-                    self.genai_client, self.model,
+            # Special case tools that need extra dependencies
+            if tool_name == "whatsapp_draft_message":
+                output = await func(
+                    self.whatsapp_client,
+                    arguments,
+                    db=self.db,
+                    genai_client=self.genai_client,
+                    model=self.model,
                 )
-            elif tool_name == "whatsapp_get_unread_chats":
-                input_obj = whatsapp_get_unread_chats.GetUnreadChatsInput(**arguments)
-                result = await whatsapp_get_unread_chats.execute(self.whatsapp_client, arguments, self.db)
             else:
-                result = await tool_func(self.whatsapp_client, arguments, self.db)
-                
-            dumped_result = result.model_dump()
+                output = await func(self.whatsapp_client, arguments, db=self.db)
+
+            # Output is a Pydantic model; convert to dict
+            result = output.model_dump()
+            logger.info("Tool %s finished. Success: %s", tool_name, result.get("success"))
+
             if self.db:
-                await self.db.log_tool_execution(tool_name, arguments, dumped_result, None, task_id)
-            return dumped_result
+                await self.db.log_tool_execution(tool_name, arguments, result, None)
+
+            return result
+
         except Exception as e:
-            error_msg = f"Error executing tool {tool_name}: {e}"
-            logger.error(error_msg)
+            logger.exception("Error executing tool %s: %s", tool_name, e)
             if self.db:
-                await self.db.log_error(tool_name, type(e).__name__, str(e))
-                await self.db.log_tool_execution(tool_name, arguments, None, str(e), task_id)
-            return {"error": error_msg}
+                await self.db.log_tool_execution(tool_name, arguments, None, str(e))
+            return {"success": False, "error": str(e)}

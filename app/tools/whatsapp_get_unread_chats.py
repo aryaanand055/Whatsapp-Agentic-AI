@@ -36,25 +36,24 @@ async def execute(
     """Gets a list of all visible chats that currently have unread messages."""
     try:
         # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ WORKSHOP EXERCISE #5: EVENT DETECTION (UNREAD CHATS)
+        # 🛠️ EXERCISE 4: EVENT SENSING (SCANNING FOR UNREAD BADGES)
         # ════════════════════════════════════════════════════════════════════════
-        # GOAL:
-        #   Check WhatsApp Web for unread notification badges.
+        # CONCEPT:
+        #   An agent should know when someone is waiting for a reply.
+        #   In WhatsApp Web, unread chats display green notification badges.
         #
-        # HINT:
-        #   1. Call: chats = await client.get_unread_chats()
-        #   2. Return GetUnreadChatsOutput(success=True, unread_chats=chats)
-        #
-        # (See solutions/SOLUTIONS.md if you get stuck!)
+        # YOUR TASK:
+        #   Call `await client.get_unread_chats()` to scan the sidebar!
         # ════════════════════════════════════════════════════════════════════════
         
-        # YOUR CODE HERE:
+        # TODO: Call client.get_unread_chats() to get the list:
         chats = await client.get_unread_chats()
-        
+
         return GetUnreadChatsOutput(
             success=True,
             unread_chats=chats
         )
+
     except Exception as e:
         logger.error(f"Error in whatsapp_get_unread_chats: {e}")
         return GetUnreadChatsOutput(success=False, unread_chats=[], error=str(e))

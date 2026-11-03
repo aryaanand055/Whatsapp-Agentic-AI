@@ -15,44 +15,45 @@ class SearchContactOutput(BaseModel):
     query: str
     error: Optional[str] = None
 
+# ════════════════════════════════════════════════════════════════════════════
+# 🛠️ WORKSHOP EXERCISE #1: HOW GEMINI SELECTS TOOLS (THE DESCRIPTION)
+# ════════════════════════════════════════════════════════════════════════════
+# CONCEPT:
+#   An LLM doesn't look at Python code. It ONLY looks at the English
+#   "description" field below to decide when to call a tool!
+#
+# YOUR TASK:
+#   Right now, the description is blank ("").
+#   If you run the agent and ask "Find Rahul on WhatsApp", Gemini will ignore
+#   this tool because it has no idea what it does!
+#
+#   Fill in a clear English description below, for example:
+#   "Search for a contact on WhatsApp by name or phone number."
+# ════════════════════════════════════════════════════════════════════════════
 TOOL_DEFINITION = {
     "type": "function",
     "function": {
         "name": "whatsapp_search_contact",
-        "description": "Search for a contact on WhatsApp by name or phone number. Returns matching contacts. If multiple matches are found, the user must select the correct one.",
+        # TODO (Exercise 1): Fill in the English description below:
+        "description": "",
         "parameters": SearchContactInput.model_json_schema()
     }
 }
 
 async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> SearchContactOutput:
-    """
-    Execute the whatsapp_search_contact tool.
-    """
+    """Execute the whatsapp_search_contact tool."""
     try:
         input_data = SearchContactInput(**args)
         
-        # ════════════════════════════════════════════════════════════════════════
-        # 🛠️ WORKSHOP EXERCISE #1: SEARCH CONTACT
-        # ════════════════════════════════════════════════════════════════════════
-        # GOAL:
-        #   Use `client` to search for the contact on WhatsApp Web.
-        #
-        # HINT:
-        #   1. Call: result = await client.search_contact(input_data.name)
-        #   2. Populate matches from result.matches
-        #
-        # (See solutions/SOLUTIONS.md if you get stuck!)
-        # ════════════════════════════════════════════════════════════════════════
-        
-        # YOUR CODE HERE:
+        # The execution code is already wired up for you!
+        # Once you provide the description above, Gemini will trigger this function:
         result = await client.search_contact(input_data.name)
         matches = [{"name": match.name, "phone": match.phone} for match in result.matches]
-        query = result.query
         
         return SearchContactOutput(
             success=True,
             matches=matches,
-            query=query
+            query=result.query
         )
     except Exception as e:
         query_name = args.get("name", "Unknown")
