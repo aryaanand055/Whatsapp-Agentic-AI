@@ -30,11 +30,17 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> OpenCha
     try:
         input_data = OpenChatInput(**args)
         
-        # ── WORKSHOP EXERCISE: TOOL #2 (Open Chat) ──────────────────────────────
-        # Call the underlying WhatsApp client automation to open the chat window.
-        # Try it yourself:
-        # success = await client.open_chat(input_data.contact)
-        # ────────────────────────────────────────────────────────────────────────
+        # ════════════════════════════════════════════════════════════════════════
+        # 🛠️ HANDS-ON EXERCISE #2: OPEN A CHAT
+        # ════════════════════════════════════════════════════════════════════════
+        # GOAL: Make Playwright navigate to the specified contact's chat.
+        #
+        # HINT:
+        #   - Call: `await client.open_chat(input_data.contact)`
+        #   - It returns a boolean (`True` on success, `False` on failure)
+        # ════════════════════════════════════════════════════════════════════════
+        
+        # TODO: Replace the line below with your implementation:
         success = await client.open_chat(input_data.contact)
         
         output = OpenChatOutput(

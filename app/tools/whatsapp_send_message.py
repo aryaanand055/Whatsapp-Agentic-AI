@@ -35,16 +35,24 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> SendMes
     try:
         input_data = SendMessageInput(**args)
         
-        # ── WORKSHOP EXERCISE: TOOL #5 (Human-In-The-Loop Safety Gate) ──────────
+        # ════════════════════════════════════════════════════════════════════════
+        # 🛠️ HANDS-ON EXERCISE #4: THE SAFETY GUARDRAIL (HUMAN-IN-THE-LOOP)
+        # ════════════════════════════════════════════════════════════════════════
         # CRITICAL AGENTIC PRINCIPLE:
-        # Never perform external destructive actions (like sending texts) without 
-        # explicit approval! If `confirmed` is False, stage it in SQLite and ask.
+        # Never allow an AI to perform an outward irreversible action (like sending texts) 
+        # without explicit human consent!
         #
-        # If confirmed is False:
-        #   confirmation_id = await db.create_pending_confirmation(...)
-        # If confirmed is True:
-        #   success = await client.send_message(input_data.contact, input_data.messages)
-        # ────────────────────────────────────────────────────────────────────────
+        # STEP 1: If `input_data.confirmed` is False:
+        #   - Stage the message in the SQLite database by calling:
+        #       confirmation_id = await db.create_pending_confirmation(...)
+        #   - Return `requires_confirmation=True` and `confirmation_id`
+        #
+        # STEP 2: If `input_data.confirmed` is True:
+        #   - Actually send the message by calling:
+        #       success = await client.send_message(input_data.contact, input_data.messages)
+        # ════════════════════════════════════════════════════════════════════════
+        
+        # TODO: Implement the safety check below:
         if not input_data.confirmed:
             if not db:
                 raise ValueError("Database is required for pending confirmations")

@@ -29,7 +29,21 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> SearchC
     Execute the whatsapp_search_contact tool.
     """
     try:
+        # Validate arguments using Pydantic
         input_data = SearchContactInput(**args)
+        
+        # ════════════════════════════════════════════════════════════════════════
+        # 🛠️ HANDS-ON EXERCISE #1: SEARCH FOR A CONTACT
+        # ════════════════════════════════════════════════════════════════════════
+        # GOAL: Use the `client` object to search WhatsApp for the given name.
+        # 
+        # HINT: 
+        #   - The contact query is in `input_data.name`
+        #   - Call: `result = await client.search_contact(input_data.name)`
+        #   - `result.matches` is a list of contacts with `.name` and `.phone`
+        # ════════════════════════════════════════════════════════════════════════
+        
+        # TODO: Replace the line below with your implementation:
         result = await client.search_contact(input_data.name)
         
         output = SearchContactOutput(

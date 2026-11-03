@@ -32,12 +32,21 @@ async def execute(client: WhatsAppClient, args: dict, db: Any = None) -> ReadMes
     try:
         input_data = ReadMessagesInput(**args)
         
-        # ── WORKSHOP EXERCISE: TOOL #3 (Read Messages) ──────────────────────────
-        # Fetch recent messages from the client. The client returns ChatMessages
-        # containing message objects with sender, timestamp, text, and is_from_me.
-        # Try it yourself:
-        # chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
-        # ────────────────────────────────────────────────────────────────────────
+        # ════════════════════════════════════════════════════════════════════════
+        # 🛠️ HANDS-ON EXERCISE #3: PERCEPTION & READING MESSAGES
+        # ════════════════════════════════════════════════════════════════════════
+        # GOAL: Read recent messages so the agent can perceive context.
+        #
+        # HINT:
+        #   - Call: `chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)`
+        #   - Each item in `chat_messages.messages` has:
+        #       - msg.sender (str)
+        #       - msg.text (str)
+        #       - msg.timestamp (str)
+        #       - msg.is_from_me (bool) -> Tells the LLM who sent it!
+        # ════════════════════════════════════════════════════════════════════════
+        
+        # TODO: Replace the line below with your implementation:
         chat_messages = await client.get_recent_messages(input_data.contact, input_data.limit)
         
         messages = [
